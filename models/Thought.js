@@ -11,7 +11,7 @@ const thoughtSchema = new Schema(
     },
     createdAt: {
       type: Date,
-      default: Date.now(),
+      default: Date.now,
     },
     username: {
       type: String,
@@ -24,13 +24,12 @@ const thoughtSchema = new Schema(
       getters: true,
       virtuals: true,
     },
+    id: false,
   }
 );
-//Create a virtual called reactionCount that retrieves the length of the thought's reactions array field on query.
+// Create a virtual called timeStamp that formats the date
 thoughtSchema.virtual("timeStamp").get(function () {
-  createdAt.prototype.getTimestamp = function () {
-    return new Date(parseInt(this.toString().slice(0, 8), 16) * 1000);
-  };
+  return this.createdAt.toString().slice(0, 15);
 });
 
 thoughtSchema.virtual("reactionCount").get(function () {

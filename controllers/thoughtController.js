@@ -20,8 +20,8 @@ module.exports = {
   },
   // Create a thought
   createThought(req, res) {
-    Course.create(req.body)
-      .then((course) => res.json(course))
+    Thought.create(req.body)
+      .then((thought) => res.json(thought))
       .catch((err) => {
         console.log(err);
         return res.status(500).json(err);

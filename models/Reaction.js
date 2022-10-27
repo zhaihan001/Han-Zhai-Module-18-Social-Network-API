@@ -24,15 +24,13 @@ const reactionSchema = new Schema(
   {
     toJSON: {
       getters: true,
+      virtuals: true,
     },
-    id: false,
   }
 );
-
+// Create a virtual called timeStamp that formats the date
 reactionSchema.virtual("timeStamp").get(function () {
-  createdAt.prototype.getTimestamp = function () {
-    return new Date(parseInt(this.toString().slice(0, 8), 16) * 1000);
-  };
+  return this.createdAt.toString().slice(0, 15);
 });
 
 module.exports = reactionSchema;

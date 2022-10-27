@@ -1,10 +1,10 @@
-const { ObjectId } = require("mongoose").Types;
-const { User, Thought } = require("../models");
+const { User } = require("../models");
 
 module.exports = {
   // Get all users
   getUsers(req, res) {
     User.find()
+      .select("-__v")
       .then(async (users) => {
         return res.json(users);
       })
@@ -16,6 +16,8 @@ module.exports = {
   // Get a single user
   getSingleUser(req, res) {
     User.findOne({ _id: req.params.userId })
+      .populate({ path: "thoughts", select: "-__v" })
+      .populate({ path: "friends", select: "-__v" })
       .select("-__v")
       .then(async (user) =>
         !user
@@ -37,37 +39,40 @@ module.exports = {
   },
   // update a user
   updateUser(req, res) {
-    User.findOne({
-      _id: req.params.userId,
-    }).then((user) =>
-      !user
-        ? res.status(404).json({ message: "No such user exists" })
-        : User.save({ users: req.params.userId }, { $set: req.body })
-    );
+    User.findOneAndUpdate(
+      {
+        _id: req.params.userId,
+      },
+      req.body,
+      { new: true, runCalidators: true }
+    )
+      .select("-__v")
+      .then((user) =>
+        !user
+          ? res.status(404).json({ message: "No such user exists" })
+          : res.json(user)
+      );
   },
   // Delete a user
   deleteUser(req, res) {
     User.findOneAndRemove({ _id: req.params.userId })
+      .select("-__v")
       .then((user) =>
         !user
           ? res.status(404).json({ message: "No such user exists" })
-          : User.findOneAndUpdate(
-              { user: req.params.studentId },
-              { $pull: { user: req.params.userId } },
-              { new: true }
-            )
+          : res.json(user)
       )
-      .then((thoughts) =>
-        !thoughts
-          ? res.status(404).json({
-              message: "User deleted, but no thoughts found",
-            })
-          : User.find(
-              { user: req.params.userId.thoughtId },
-              { $pull: { user: req.params.userId.thoughtId } },
-              { new: true }
-            )
-      )
+      // .then((thoughts) =>
+      //   !thoughts
+      //     ? res.status(404).json({
+      //         message: "User deleted, but no thoughts found",
+      //       })
+      //     : User.find(
+      //         { user: req.params.userId.thoughtId },
+      //         { $pull: { user: req.params.userId.thoughtId } },
+      //         { new: true }
+      //       )
+      // )
       .catch((err) => {
         console.log(err);
         res.status(500).json(err);
@@ -80,9 +85,10 @@ module.exports = {
     console.log(req.body);
     User.findOneAndUpdate(
       { _id: req.params.userId },
-      { $addToSet: { friends: req.body } },
+      { $push: { friends: req.params.friendId } },
       { runValidators: true, new: true }
     )
+      .select("-__v")
       .then((user) =>
         !user
           ? res.status(404).json({ message: "No user found with that ID :(" })
@@ -94,9 +100,10 @@ module.exports = {
   deleteFriend(req, res) {
     User.findOneAndUpdate(
       { _id: req.params.userId },
-      { $pull: { friends: { friendId: req.params.friendId } } },
+      { $pull: { friends: req.params.friendId } },
       { runValidators: true, new: true }
     )
+      .select("-__v")
       .then((user) =>
         !user
           ? res.status(404).json({ message: "No user found with that ID :(" })
