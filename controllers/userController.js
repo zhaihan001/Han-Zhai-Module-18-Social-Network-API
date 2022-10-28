@@ -1,4 +1,4 @@
-const { User } = require("../models");
+const { User, Thought } = require("../models");
 
 module.exports = {
   // Get all users
@@ -6,13 +6,14 @@ module.exports = {
     User.find()
       .select("-__v")
       .then(async (users) => {
-        return res.json(users);
+        await res.json(users);
       })
       .catch((err) => {
         console.log(err);
         return res.status(500).json(err);
       });
   },
+
   // Get a single user
   getSingleUser(req, res) {
     User.findOne({ _id: req.params.userId })
@@ -31,12 +32,14 @@ module.exports = {
         return res.status(500).json(err);
       });
   },
+
   // create a new user
   createUser(req, res) {
     User.create(req.body)
       .then((user) => res.json(user))
       .catch((err) => res.status(500).json(err));
   },
+
   // update a user
   updateUser(req, res) {
     User.findOneAndUpdate(
@@ -44,7 +47,7 @@ module.exports = {
         _id: req.params.userId,
       },
       req.body,
-      { new: true, runCalidators: true }
+      { new: true, runValidators: true }
     )
       .select("-__v")
       .then((user) =>
@@ -53,26 +56,33 @@ module.exports = {
           : res.json(user)
       );
   },
+
   // Delete a user
   deleteUser(req, res) {
-    User.findOneAndRemove({ _id: req.params.userId })
+    User.findOneAndRemove(
+      { _id: req.params.userId },
+      {
+        new: true,
+      }
+    )
       .select("-__v")
-      .then((user) =>
-        !user
-          ? res.status(404).json({ message: "No such user exists" })
-          : res.json(user)
-      )
-      // .then((thoughts) =>
-      //   !thoughts
-      //     ? res.status(404).json({
-      //         message: "User deleted, but no thoughts found",
-      //       })
-      //     : User.find(
-      //         { user: req.params.userId.thoughtId },
-      //         { $pull: { user: req.params.userId.thoughtId } },
-      //         { new: true }
-      //       )
-      // )
+      .then((user) => {
+        if (!user) {
+          res.status(404).json({ message: "No user found with that ID :(" });
+        } else {
+          if (user.thoughts != []) {
+            Thought.deleteMany({ _id: { $in: user.thoughts } })
+              .select("-__v")
+              .then((thought) => {
+                !thought
+                  ? res
+                      .status(404)
+                      .json({ message: "No thought with that user" })
+                  : res.json(thought);
+              });
+          }
+        }
+      })
       .catch((err) => {
         console.log(err);
         res.status(500).json(err);
@@ -82,7 +92,6 @@ module.exports = {
   // Add a friend to user
   addFriend(req, res) {
     console.log("You are adding a friend");
-    console.log(req.body);
     User.findOneAndUpdate(
       { _id: req.params.userId },
       { $push: { friends: req.params.friendId } },
@@ -96,6 +105,7 @@ module.exports = {
       )
       .catch((err) => res.status(500).json(err));
   },
+
   // Remove friend from a user
   deleteFriend(req, res) {
     User.findOneAndUpdate(

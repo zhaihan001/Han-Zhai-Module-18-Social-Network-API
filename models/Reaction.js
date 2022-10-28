@@ -26,6 +26,7 @@ const reactionSchema = new Schema(
       getters: true,
       virtuals: true,
     },
+    id: false,
   }
 );
 // Create a virtual called timeStamp that formats the date
